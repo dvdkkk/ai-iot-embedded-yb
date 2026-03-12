@@ -32,15 +32,6 @@ export interface ProcessStep {
   description: string;
 }
 
-export interface VisitorLog {
-  id: string;
-  ip: string;
-  referrer: string;
-  timestamp: string;
-  userAgent: string;
-  keyword: string;
-}
-
 // Admin Content Types
 export interface HeroContent {
   badge: string;

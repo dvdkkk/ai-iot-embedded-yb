@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { SiteContent, VisitorLog } from '../types';
+import { SiteContent } from '../types';
 import { COURSES, EMPLOYMENT_STATUS, PROCESS_STEPS } from '../constants';
 
 const defaultContent: SiteContent = {
@@ -77,9 +77,7 @@ const defaultContent: SiteContent = {
 
 interface ContentContextType {
   content: SiteContent;
-  visitorLogs: VisitorLog[];
   updateContent: (newContent: SiteContent) => void;
-  addVisitorLog: (log: Omit<VisitorLog, 'id'>) => void;
   resetContent: () => void;
 }
 
@@ -87,11 +85,9 @@ const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 // 버전을 v8로 올려서 로컬 스토리지를 강제 갱신함
 const STORAGE_KEY = 'site_content_v11';
-const LOG_KEY = 'visitor_logs_v11';
 
 export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<SiteContent>(defaultContent);
-  const [visitorLogs, setVisitorLogs] = useState<VisitorLog[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -105,34 +101,12 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     }
 
-    const savedLogs = localStorage.getItem(LOG_KEY);
-    if (savedLogs) {
-      try {
-        setVisitorLogs(JSON.parse(savedLogs));
-      } catch (e) {
-        console.error("Failed to load logs", e);
-      }
-    }
-
     setIsLoaded(true);
   }, []);
 
   const updateContent = (newContent: SiteContent) => {
     setContent(newContent);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newContent));
-  };
-
-  const addVisitorLog = (logData: Omit<VisitorLog, 'id'>) => {
-    const newLog: VisitorLog = {
-      ...logData,
-      id: Math.random().toString(36).substr(2, 9)
-    };
-    
-    setVisitorLogs(prev => {
-      const updated = [newLog, ...prev].slice(0, 500);
-      localStorage.setItem(LOG_KEY, JSON.stringify(updated));
-      return updated;
-    });
   };
 
   const resetContent = () => {
@@ -145,7 +119,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
   if (!isLoaded) return null;
 
   return (
-    <ContentContext.Provider value={{ content, visitorLogs, updateContent, addVisitorLog, resetContent }}>
+    <ContentContext.Provider value={{ content, updateContent, resetContent }}>
       {children}
     </ContentContext.Provider>
   );
