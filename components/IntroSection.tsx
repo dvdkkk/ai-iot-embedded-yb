@@ -80,6 +80,9 @@ export const IntroSection: React.FC = () => {
                   alt={`교육 현장 사진 ${index + 1}`} 
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=1000&auto=format&fit=crop';
+                  }}
                 />
                 <div className="absolute inset-0 bg-purple-800/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-50"></div>
