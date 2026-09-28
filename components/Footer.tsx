@@ -1,6 +1,14 @@
 import React, { useEffect } from 'react';
 
 export const Footer: React.FC = () => {
+  const handlePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    if (!isMobile) {
+      e.preventDefault();
+      window.open('https://naver.me/G1w8Gyro', '_blank', 'noopener,noreferrer');
+    }
+  };
+
   useEffect(() => {
     // 리포트2.0 로그분석코드 시작
     const sTime = new Date().getTime();
@@ -31,7 +39,9 @@ export const Footer: React.FC = () => {
                 <p className="font-bold text-zinc-400 mb-2">고객센터</p>
                 <a 
                   href="tel:15996529" 
-                  className="text-2xl font-bold text-white hover:text-purple-800 transition-colors md:pointer-events-none md:cursor-default md:hover:text-white inline-block"
+                  onClick={handlePhoneClick}
+                  className="text-2xl font-bold text-white hover:text-purple-400 transition-colors inline-block cursor-pointer"
+                  title="고객센터 전화 및 온라인 상담신청"
                 >
                   1599-6529
                 </a>

@@ -241,10 +241,12 @@ export const VisionSection: React.FC = () => {
         {/* Education Inquiry Button */}
         <Reveal className="w-full mt-24 mb-12 flex justify-center">
           <a
-            href="#consultation"
+            href="https://naver.me/G1w8Gyro"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={(e) => {
               e.preventDefault();
-              document.getElementById('consultation')?.scrollIntoView({ behavior: 'smooth' });
+              window.open('https://naver.me/G1w8Gyro', '_blank', 'noopener,noreferrer');
             }}
             className="group relative inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-purple-800 to-purple-900 text-white font-black text-lg md:text-xl px-10 py-4 rounded-full shadow-[0_0_30px_rgba(107,33,168,0.4)] hover:shadow-[0_0_50px_rgba(107,33,168,0.6)] hover:scale-105 transition-all duration-300"
           >

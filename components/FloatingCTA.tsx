@@ -1,5 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
+import { MessageSquareText } from 'lucide-react';
 
 export const FloatingCTA: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -16,23 +16,7 @@ export const FloatingCTA: React.FC = () => {
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    const element = document.getElementById('consultation');
-    if (element) {
-      const headerOffset = 80;
-      
-      // 모바일 환경(768px 미만)일 경우 
-      // 기존 420px에서 약 1행(30px) 위로 조정한 390px 추가 스크롤
-      const isMobile = window.innerWidth < 768;
-      const additionalOffset = isMobile ? 390 : 0;
-
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset + additionalOffset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth"
-      });
-    }
+    window.open('https://naver.me/G1w8Gyro', '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -40,12 +24,15 @@ export const FloatingCTA: React.FC = () => {
       className={`fixed bottom-6 right-6 z-50 pointer-events-none transition-all duration-500 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
     >
       <a 
-        href="#consultation" 
+        href="https://naver.me/G1w8Gyro"
+        target="_blank"
+        rel="noopener noreferrer" 
         onClick={handleClick}
-        className="pointer-events-auto bg-purple-800 hover:bg-purple-700 text-white font-bold text-sm w-16 h-16 rounded-full shadow-[0_4px_15px_rgba(107,33,168,0.4)] flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
-        aria-label="문의 신청하기"
+        className="pointer-events-auto bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm px-4 py-3.5 sm:px-5 sm:py-4 rounded-full shadow-[0_6px_25px_rgba(107,33,168,0.5)] flex items-center gap-2 transition-all hover:scale-110 active:scale-95 border border-white/20"
+        aria-label="상담 신청하기"
       >
-        문의
+        <MessageSquareText size={18} />
+        <span>상담신청</span>
       </a>
     </div>
   );

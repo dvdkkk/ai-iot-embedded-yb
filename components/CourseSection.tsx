@@ -215,10 +215,12 @@ export const CourseSection: React.FC = () => {
 
               <div className="flex flex-col items-center justify-center shrink-0">
                 <a
-                  href="#consultation"
+                  href="https://naver.me/G1w8Gyro"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={(e) => {
                     e.preventDefault();
-                    document.getElementById('consultation')?.scrollIntoView({ behavior: 'smooth' });
+                    window.open('https://naver.me/G1w8Gyro', '_blank', 'noopener,noreferrer');
                   }}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-base px-8 py-4 rounded-2xl shadow-[0_0_25px_rgba(147,51,235,0.4)] hover:shadow-[0_0_40px_rgba(147,51,235,0.7)] hover:scale-105 transition-all duration-300"
                 >

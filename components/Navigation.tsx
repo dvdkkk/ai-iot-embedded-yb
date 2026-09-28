@@ -15,16 +15,20 @@ export const Navigation: React.FC = () => {
   }, []);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('http')) {
+      e.preventDefault();
+      window.open(href, '_blank', 'noopener,noreferrer');
+      setIsMobileMenuOpen(false);
+      return;
+    }
+
     e.preventDefault();
     const targetId = href.replace('#', '');
     const element = document.getElementById(targetId);
     if (element) {
       const headerOffset = 80;
-      const isMobile = window.innerWidth < 768;
-      const additionalOffset = (isMobile && targetId === 'consultation') ? 390 : 0;
-
       const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset + additionalOffset;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
       window.scrollTo({
         top: offsetPosition,
@@ -34,6 +38,14 @@ export const Navigation: React.FC = () => {
     setIsMobileMenuOpen(false);
   };
 
+  const handlePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    if (!isMobile) {
+      e.preventDefault();
+      window.open('https://naver.me/G1w8Gyro', '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const navLinks = [
     { name: '비전 & 혜택', href: '#vision' },
     { name: '과정소개', href: '#courses' },
@@ -41,7 +53,7 @@ export const Navigation: React.FC = () => {
     { name: '취업지원', href: '#employment-support' },
     { name: '취업현황', href: '#employment' },
     { name: '수강후기', href: '#reviews' },
-    { name: '상담신청', href: '#consultation' },
+    { name: '상담신청', href: 'https://naver.me/G1w8Gyro' },
   ];
 
   return (
@@ -73,11 +85,9 @@ export const Navigation: React.FC = () => {
           ))}
           <a 
             href="tel:15996529" 
-            onClick={(e) => {
-              const isPc = window.innerWidth >= 1024;
-              if (isPc) handleNavClick(e, '#consultation');
-            }}
-            className="flex items-center gap-2 bg-purple-800 text-black px-5 py-2 rounded-full font-bold text-lg hover:bg-purple-700 transition-transform hover:scale-105"
+            onClick={handlePhoneClick}
+            className="flex items-center gap-2 bg-purple-800 text-black px-5 py-2 rounded-full font-bold text-lg hover:bg-purple-700 transition-transform hover:scale-105 cursor-pointer"
+            title="교육문의"
           >
             <PhoneCall size={20} />
             1599-6529
@@ -108,11 +118,25 @@ export const Navigation: React.FC = () => {
             </a>
           ))}
           <a 
-            href="#consultation" 
-            className="bg-purple-800 text-black text-center py-3 rounded-md font-bold text-sm"
-            onClick={(e) => handleNavClick(e, '#consultation')}
+            href="https://naver.me/G1w8Gyro" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-purple-800 text-black text-center py-3 rounded-md font-bold text-sm block"
+            onClick={(e) => {
+              e.preventDefault();
+              window.open('https://naver.me/G1w8Gyro', '_blank', 'noopener,noreferrer');
+              setIsMobileMenuOpen(false);
+            }}
           >
             무료상담 신청하기
+          </a>
+          <a 
+            href="tel:15996529" 
+            onClick={handlePhoneClick}
+            className="flex items-center justify-center gap-2 bg-zinc-800 text-white text-center py-3 rounded-md font-bold text-sm"
+          >
+            <PhoneCall size={18} />
+            1599-6529 전화상담
           </a>
         </div>
       )}
