@@ -8,7 +8,7 @@ import { COURSES, EMPLOYMENT_STATUS, PROCESS_STEPS } from '../constants';
  * 해당 원격 구글 시트에서 실시간으로 데이터를 가져옵니다.
  * 미입력 시 업로드된 시트 에셋(/assets/aistudio/_______________bdb6642d)을 자동으로 참조합니다.
  */
-export const GOOGLE_SHEET_CSV_URL = '';
+export const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRzLxHiDq6F7MLg8ieg3CaVCAxZY1evEPiJN2Tn24LY2Xgv3g8cZJwrG4nnwLEExn1CD_bzRUZVh4UA/pub?output=csv';
 
 // CSV 파서 헬퍼: 따옴표 및 줄바꿈 처리
 function parseCSV(text: string): string[][] {
