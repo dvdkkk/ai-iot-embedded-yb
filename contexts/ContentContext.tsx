@@ -1,7 +1,80 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SiteContent } from '../types';
 import { COURSES, EMPLOYMENT_STATUS, PROCESS_STEPS } from '../constants';
+
+/**
+ * 구글 스프레드시트 웹 게시 CSV URL 설정
+ * [파일] -> [공유] -> [웹에 게시] -> [쉼표로 구분된 값(.csv)] 링크가 있을 경우 아래 변수에 입력하면
+ * 해당 원격 구글 시트에서 실시간으로 데이터를 가져옵니다.
+ * 미입력 시 업로드된 시트 에셋(/assets/aistudio/_______________bdb6642d)을 자동으로 참조합니다.
+ */
+export const GOOGLE_SHEET_CSV_URL = '';
+
+// CSV 파서 헬퍼: 따옴표 및 줄바꿈 처리
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentCell = '';
+  let insideQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (insideQuotes && nextChar === '"') {
+        currentCell += '"';
+        i++;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (char === ',' && !insideQuotes) {
+      currentRow.push(currentCell.trim());
+      currentCell = '';
+    } else if ((char === '\r' || char === '\n') && !insideQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      currentRow.push(currentCell.trim());
+      rows.push(currentRow);
+      currentRow = [];
+      currentCell = '';
+    } else {
+      currentCell += char;
+    }
+  }
+
+  if (currentCell.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentCell.trim());
+    rows.push(currentRow);
+  }
+
+  return rows;
+}
+
+// 시트의 D4 셀 값(Row 4, Column D -> 0-based index 3, 3)을 추출하는 함수
+function extractD4Value(rows: string[][]): string | null {
+  // 1순위: D4 셀 (행 4, 열 D: A=0, B=1, C=2, D=3 / 행 1=0, 2=1, 3=2, 4=3)
+  if (rows[3] && rows[3][3] && rows[3][3].trim()) {
+    return rows[3][3].trim();
+  }
+
+  // 2순위: '개강일' 열 헤더 탐색 후 해당 열의 4번째 행 또는 다음 행 데이터 추출
+  let colIndex = -1;
+  for (let r = 0; r < rows.length; r++) {
+    for (let c = 0; c < rows[r].length; c++) {
+      if (rows[r][c].includes('개강일')) {
+        colIndex = c;
+        break;
+      }
+    }
+    if (colIndex !== -1 && rows[r + 1] && rows[r + 1][colIndex]) {
+      return rows[r + 1][colIndex].trim();
+    }
+  }
+
+  return null;
+}
 
 const defaultContent: SiteContent = {
   hero: {
@@ -10,7 +83,7 @@ const defaultContent: SiteContent = {
     highlight: "AI사물인터넷 MCU기반\n임베디드 펌웨어 전문가로",
     description: "온 디바이스AI, 스마트팩토리, 스마트팜 등에 활용되는 Cortex-M4/Mx ARM MCU 기반 임베디드/펌웨어 실무 교육 과정입니다. 한국직업능력교육원에서 임베디드 전문가로 거듭나세요.",
     stats: [
-      { label: '교육기간', value: '26.10.28개강(6개월과정)' },
+      { label: '교육기간', value: '26.12.21개강(6개월과정)' },
       { label: '교육시간', value: '월~금 09:00~17:40' },
       { label: '수강료', value: '95~100% 국비지원' },
       { label: '수업형태', value: '오프라인 수업' },
@@ -83,25 +156,68 @@ interface ContentContextType {
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
-// 버전을 v8로 올려서 로컬 스토리지를 강제 갱신함
-const STORAGE_KEY = 'site_content_v11';
+// 버전을 v12로 올려서 로컬 스토리지를 강제 갱신함
+const STORAGE_KEY = 'site_content_v12';
 
 export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<SiteContent>(defaultContent);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const savedContent = localStorage.getItem(STORAGE_KEY);
-    if (savedContent) {
-      try {
-        const parsed = JSON.parse(savedContent);
-        setContent({ ...defaultContent, ...parsed });
-      } catch (e) {
-        console.error("Failed to load content", e);
+    const loadContentAndSyncSheet = async () => {
+      let current = defaultContent;
+      const savedContent = localStorage.getItem(STORAGE_KEY);
+      if (savedContent) {
+        try {
+          const parsed = JSON.parse(savedContent);
+          current = { ...defaultContent, ...parsed };
+        } catch (e) {
+          console.error("Failed to load content", e);
+        }
       }
-    }
 
-    setIsLoaded(true);
+      // 구글 스프레드시트 웹 게시 URL 또는 업로드된 시트 엔드포인트에서 D4 셀 값(개강일)을 동적으로 읽어와 반영
+      const sheetEndpoints = [
+        GOOGLE_SHEET_CSV_URL,
+        `/assets/aistudio/_______________bdb6642d?_t=${Date.now()}`,
+        `/assets/aistudio/schedule.csv?_t=${Date.now()}`
+      ].filter(Boolean);
+
+      for (const endpoint of sheetEndpoints) {
+        try {
+          const urlWithCacheBuster = endpoint.startsWith('http') 
+            ? `${endpoint}${endpoint.includes('?') ? '&' : '?'}_t=${Date.now()}`
+            : endpoint;
+
+          const response = await fetch(urlWithCacheBuster, { cache: 'no-store' });
+          if (response.ok) {
+            const csvText = await response.text();
+            const rows = parseCSV(csvText);
+            const d4Value = extractD4Value(rows);
+            if (d4Value) {
+              const updatedStats = (current.hero.stats || []).map((stat) =>
+                stat.label === '교육기간' ? { ...stat, value: d4Value } : stat
+              );
+              current = {
+                ...current,
+                hero: {
+                  ...current.hero,
+                  stats: updatedStats
+                }
+              };
+              break;
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to fetch sheet from ${endpoint}:`, err);
+        }
+      }
+
+      setContent(current);
+      setIsLoaded(true);
+    };
+
+    loadContentAndSyncSheet();
   }, []);
 
   const updateContent = (newContent: SiteContent) => {
