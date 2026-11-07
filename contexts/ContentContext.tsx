@@ -3,14 +3,12 @@ import { SiteContent } from '../types';
 import { COURSES, EMPLOYMENT_STATUS, PROCESS_STEPS } from '../constants';
 
 /**
- * 구글 스프레드시트 웹 게시 CSV URL 설정
- * [파일] -> [공유] -> [웹에 게시] -> [쉼표로 구분된 값(.csv)] 링크가 있을 경우 아래 변수에 입력하면
- * 해당 원격 구글 시트에서 실시간으로 데이터를 가져옵니다.
- * 미입력 시 업로드된 시트 에셋(/assets/aistudio/_______________bdb6642d)을 자동으로 참조합니다.
+ * 실시간 구글 스프레드시트 웹 게시 CSV 주소
+ * [파일] -> [공유] -> [웹에 게시] -> [쉼표로 구분된 값(.csv)]
  */
 export const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRzLxHiDq6F7MLg8ieg3CaVCAxZY1evEPiJN2Tn24LY2Xgv3g8cZJwrG4nnwLEExn1CD_bzRUZVh4UA/pub?output=csv';
 
-// CSV 파서 헬퍼: 따옴표 및 줄바꿈 처리
+// 정밀 CSV 파서: 쉼표(,), 큰따옴표(""), 줄바꿈(\r, \n)을 정확하게 처리
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
   let currentRow: string[] = [];
@@ -52,24 +50,33 @@ function parseCSV(text: string): string[][] {
   return rows;
 }
 
-// 시트의 D4 셀 값(Row 4, Column D -> 0-based index 3, 3)을 추출하는 함수
+// 시트의 4번째 행, D열(4번째 열인 D4 셀값) 정밀 추출 함수
 function extractD4Value(rows: string[][]): string | null {
-  // 1순위: D4 셀 (행 4, 열 D: A=0, B=1, C=2, D=3 / 행 1=0, 2=1, 3=2, 4=3)
+  // 1순위: D4 셀 (행 index 3, 열 index 3: 행 4, D열)
   if (rows[3] && rows[3][3] && rows[3][3].trim()) {
     return rows[3][3].trim();
   }
 
-  // 2순위: '개강일' 열 헤더 탐색 후 해당 열의 4번째 행 또는 다음 행 데이터 추출
-  let colIndex = -1;
+  // 2순위: 헤더 중 '개강일' 열 및 '한직교' 행 데이터 탐색
+  let dateColIndex = -1;
   for (let r = 0; r < rows.length; r++) {
     for (let c = 0; c < rows[r].length; c++) {
       if (rows[r][c].includes('개강일')) {
-        colIndex = c;
+        dateColIndex = c;
         break;
       }
     }
-    if (colIndex !== -1 && rows[r + 1] && rows[r + 1][colIndex]) {
-      return rows[r + 1][colIndex].trim();
+    if (dateColIndex !== -1 && rows[r + 1] && rows[r + 1][dateColIndex]) {
+      return rows[r + 1][dateColIndex].trim();
+    }
+  }
+
+  // 3순위: 셀 내용 중 '개강' 및 숫자가 포함된 데이터 추출
+  for (const row of rows) {
+    for (const cell of row) {
+      if (cell.includes('개강') && /\d/.test(cell)) {
+        return cell.trim();
+      }
     }
   }
 
@@ -83,7 +90,7 @@ const defaultContent: SiteContent = {
     highlight: "AI사물인터넷 MCU기반\n임베디드 펌웨어 전문가로",
     description: "온 디바이스AI, 스마트팩토리, 스마트팜 등에 활용되는 Cortex-M4/Mx ARM MCU 기반 임베디드/펌웨어 실무 교육 과정입니다. 한국직업능력교육원에서 임베디드 전문가로 거듭나세요.",
     stats: [
-      { label: '교육기간', value: '26.12.21개강(6개월과정)' },
+      { label: '교육기간', value: '26.12.22개강(6개월과정)' },
       { label: '교육시간', value: '월~금 09:00~17:40' },
       { label: '수강료', value: '95~100% 국비지원' },
       { label: '수업형태', value: '오프라인 수업' },
@@ -156,68 +163,66 @@ interface ContentContextType {
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
-// 버전을 v12로 올려서 로컬 스토리지를 강제 갱신함
-const STORAGE_KEY = 'site_content_v12';
+const STORAGE_KEY = 'site_content_v13';
 
 export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<SiteContent>(defaultContent);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const loadContentAndSyncSheet = async () => {
-      let current = defaultContent;
-      const savedContent = localStorage.getItem(STORAGE_KEY);
-      if (savedContent) {
-        try {
-          const parsed = JSON.parse(savedContent);
-          current = { ...defaultContent, ...parsed };
-        } catch (e) {
-          console.error("Failed to load content", e);
-        }
+    // 1. 저장된 로컬스토리지 불러오기
+    const savedContent = localStorage.getItem(STORAGE_KEY);
+    if (savedContent) {
+      try {
+        const parsed = JSON.parse(savedContent);
+        setContent(prev => ({ ...prev, ...parsed }));
+      } catch (e) {
+        console.error("Failed to load content", e);
       }
+    }
 
-      // 구글 스프레드시트 웹 게시 URL 또는 업로드된 시트 엔드포인트에서 D4 셀 값(개강일)을 동적으로 읽어와 반영
-      const sheetEndpoints = [
-        GOOGLE_SHEET_CSV_URL,
-        `/assets/aistudio/_______________bdb6642d?_t=${Date.now()}`,
-        `/assets/aistudio/schedule.csv?_t=${Date.now()}`
-      ].filter(Boolean);
-
-      for (const endpoint of sheetEndpoints) {
-        try {
-          const urlWithCacheBuster = endpoint.startsWith('http') 
-            ? `${endpoint}${endpoint.includes('?') ? '&' : '?'}_t=${Date.now()}`
-            : endpoint;
-
-          const response = await fetch(urlWithCacheBuster, { cache: 'no-store' });
-          if (response.ok) {
-            const csvText = await response.text();
-            const rows = parseCSV(csvText);
-            const d4Value = extractD4Value(rows);
-            if (d4Value) {
-              const updatedStats = (current.hero.stats || []).map((stat) =>
+    // 2. 실시간 구글 시트 연동: 캐시 없는 최신 데이터 즉시 반영 (cache: 'no-store' & 타임스탬프)
+    const syncGoogleSheet = async () => {
+      const liveUrl = `${GOOGLE_SHEET_CSV_URL}${GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+      try {
+        const response = await fetch(liveUrl, { cache: 'no-store' });
+        if (response.ok) {
+          const csvText = await response.text();
+          const rows = parseCSV(csvText);
+          const d4Value = extractD4Value(rows);
+          if (d4Value) {
+            setContent(prev => {
+              const updatedStats = (prev.hero.stats || []).map(stat =>
                 stat.label === '교육기간' ? { ...stat, value: d4Value } : stat
               );
-              current = {
-                ...current,
+              return {
+                ...prev,
                 hero: {
-                  ...current.hero,
+                  ...prev.hero,
                   stats: updatedStats
                 }
               };
-              break;
-            }
+            });
           }
-        } catch (err) {
-          console.error(`Failed to fetch sheet from ${endpoint}:`, err);
         }
+      } catch (err) {
+        console.error("구글 시트 실시간 데이터 가져오기 실패:", err);
       }
-
-      setContent(current);
-      setIsLoaded(true);
     };
 
-    loadContentAndSyncSheet();
+    // 첫 진입 / 새로고침(F5) 시 즉시 호출
+    syncGoogleSheet();
+
+    // 탭으로 돌아왔을 때도 실시간 갱신
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncGoogleSheet();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const updateContent = (newContent: SiteContent) => {
@@ -231,8 +236,6 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
       localStorage.removeItem(STORAGE_KEY);
     }
   };
-
-  if (!isLoaded) return null;
 
   return (
     <ContentContext.Provider value={{ content, updateContent, resetContent }}>
